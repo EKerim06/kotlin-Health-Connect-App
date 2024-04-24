@@ -8,7 +8,6 @@
     android:layout_marginTop="64dp"
     tools:context=".features.personalDatas.PersonalDatas">
 
-
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -17,9 +16,37 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingHorizontal="12dp"
-            android:paddingVertical="12dp"
+            android:gravity="center"
             android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/lastDate"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginRight="32dp"
+                android:text="last date" />
+
+            <TextView
+                android:id="@+id/selectedDate"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:text="" />
+
+            <Button
+                android:id="@+id/nextDate"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="32dp"
+                android:text="next date" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="12dp">
 
             <TextView
                 android:id="@+id/textView8"
@@ -36,53 +63,50 @@
                 android:text="" />
         </LinearLayout>
 
-        <LinearLayout
-            android:layout_gravity="center"
-            android:paddingHorizontal="12dp"
-            android:paddingVertical="12dp"
-
+        <Button
+            android:id="@+id/total_count_button"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:layout_marginLeft="64dp"
+            android:layout_marginTop="24dp"
+            android:layout_marginRight="64dp"
+            android:text="@string/personel_datas_total_count" />
 
-            <TextView
-                android:id="@+id/textView3"
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:paddingTop="24dp"
+            android:orientation="horizontal"
+            tools:layout_editor_absoluteY="164dp">
+
+            <Button
+                android:id="@+id/lastMonth"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Kalp Atimi" />
+                android:text="Onceki ay" />
 
             <TextView
-                android:id="@+id/heartCountView"
+                android:id="@+id/selectedMonthTextView"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
+                android:paddingHorizontal="24dp"
                 android:text="" />
+
+            <Button
+                android:id="@+id/nextMonth"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Sonraki ay" />
+
 
         </LinearLayout>
 
-        <LinearLayout
-            android:layout_gravity="center"
-            android:paddingHorizontal="12dp"
-            android:paddingVertical="12dp"
-
+        <ListView
+            android:id="@+id/dalyData"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:layout_height="match_parent" />
 
-            <TextView
-                android:id="@+id/textView10"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Hiz Degeri" />
 
-            <TextView
-                android:id="@+id/speedTextView"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="" />
-        </LinearLayout>
     </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

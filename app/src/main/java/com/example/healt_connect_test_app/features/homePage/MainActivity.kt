@@ -24,6 +24,8 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var connect: Button
 
+    private var nextPage = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -37,6 +39,7 @@ class MainActivity : AppCompatActivity() {
         connect = findViewById(R.id.health_connect)
 
         val alertDialogBuilder = AlertDialog.Builder(this)
+
 
 
         connect.setOnClickListener {
@@ -54,8 +57,10 @@ class MainActivity : AppCompatActivity() {
                     )
 
                 } else {
-                    val nextPage = Intent(this, PersonalDatas::class.java)
-                    startActivity(nextPage)
+
+                        val nextPage = Intent(this, PersonalDatas::class.java)
+                        startActivity(nextPage)
+
                 }
 
             } else {
@@ -67,6 +72,7 @@ class MainActivity : AppCompatActivity() {
                 )
             }
         }
+
     }
 
 

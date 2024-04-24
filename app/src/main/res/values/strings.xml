@@ -4,4 +4,5 @@
     <string name="home_page_app_control"> Cihazda Health connect yok lutfen uygulamayi tamama tiklayarak indirin yoksa uygulama kapanacak </string>
     <string name="home_page_app_update_available"> Health Connect icin guncelleme mevcut Lutfen guncelleme yapiniz </string>
     <string name="detail_page_some_permission_denied"> Bazi izinler reddedildi uygulama duzgun calismayabilir </string>
+    <string name="personel_datas_total_count">Toplam degeri Goster</string>
 </resources>
