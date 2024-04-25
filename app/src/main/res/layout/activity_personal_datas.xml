@@ -84,7 +84,7 @@
                 android:id="@+id/lastMonth"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Onceki ay" />
+                android:text="Last day" />
 
             <TextView
                 android:id="@+id/selectedMonthTextView"
@@ -97,7 +97,7 @@
                 android:id="@+id/nextMonth"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Sonraki ay" />
+                android:text="Next day" />
 
 
         </LinearLayout>

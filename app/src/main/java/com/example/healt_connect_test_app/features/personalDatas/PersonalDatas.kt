@@ -22,6 +22,7 @@ import androidx.health.connect.client.request.AggregateGroupByPeriodRequest
 import androidx.health.connect.client.request.AggregateRequest
 import androidx.health.connect.client.time.TimeRangeFilter
 import com.example.healt_connect_test_app.R
+import com.example.healt_connect_test_app.app_constants.DataType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -89,6 +90,10 @@ class PersonalDatas : AppCompatActivity() {
 
     private lateinit var listView: ListView
 
+//    private lateinit var dailyData: DataType
+//    private lateinit var weeklyData: DataType
+//    private lateinit var monthlyData: DataType
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -107,6 +112,13 @@ class PersonalDatas : AppCompatActivity() {
         lastDateButton = findViewById(R.id.lastDate)
         nextMonthButton = findViewById(R.id.nextMonth)
         lastMonthButton = findViewById(R.id.lastMonth)
+
+//        dailyData = DataType.DAILY
+
+//        weeklyData = DataType.WEEKLY
+
+//        monthlyData = DataType.MONTHLY
+
 
         totalStepCountButton = findViewById(R.id.total_count_button)
 
@@ -160,107 +172,21 @@ class PersonalDatas : AppCompatActivity() {
             }
         }
 
-        val q = LocalDateTime.now().month.value
-        val month = Month.of(q)
-
-        println("++++++++$month+++++++++")
-        ////
-        val monthStart =
-            LocalDateTime.now().withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0)
-                .withNano(0).toInstant(ZoneOffset.UTC)
-
         CoroutineScope(Dispatchers.Main).launch {
             checkPermissionAndRun()
             selectedDaysStepsCount(healthConnectClient, selectedDate)
-//            aggregateStepsIntoMonths(
-//                healthConnectClient,
-//                LocalDateTime.now().withDayOfMonth(1),
-//                LocalDateTime.now()
-//            )
             selectedMonthStepCount(healthConnectClient, selectedMonth)
+            weeklyStepData(healthConnectClient, LocalDateTime.now())
+
+//            println(
+//                dailyData.selectDataType(healthConnectClient, selectedDate)
+//                    .invoke(healthConnectClient, selectedDate)
+//            )
+
         }
     }
 
     // burayi incele burda istedigim verileri tam tamina alabiliyorum. for'a gerek kalmadan.
-    private suspend fun aggregateStepsIntoMonths(
-        healthConnectClient: HealthConnectClient,
-        startTime: LocalDateTime,
-        endTime: LocalDateTime
-    ) {
-        try {
-
-            val startOfMonth = LocalDate.of(LocalDate.now().year, selectedMonth, 1).atStartOfDay()
-            val endOfMonth = startOfMonth.plusMonths(1).minusNanos(1)
-
-            val response = healthConnectClient.aggregateGroupByPeriod(
-                AggregateGroupByPeriodRequest(
-                    metrics = setOf(StepsRecord.COUNT_TOTAL),
-                    timeRangeFilter = TimeRangeFilter.between(startOfMonth, endOfMonth),
-                    timeRangeSlicer = Period.ofDays(1)
-                )
-            )
-
-            for (dailyResults in response) {
-                // The result may be null if no data is available in the time range
-                val startDays = dailyResults.startTime
-                val endDays = dailyResults.endTime
-                val totalSteps = dailyResults.result[StepsRecord.COUNT_TOTAL]
-                println(
-                    "data = $totalSteps, Times = startDate : ${formatDate(startDays.toLocalDate())} endDate : ${
-                        formatDate(
-                            endDays.toLocalDate()
-                        )
-                    }"
-                )
-            }
-
-        } catch (e: Exception) {
-            // Run error handling here
-            e.printStackTrace()
-        }
-
-    }
-
-    private suspend fun exampleDays(
-        healthConnectClient: HealthConnectClient,
-        year: Int,
-        month: Int
-    ) {
-        try {
-            // Başlangıç ve bitiş zamanlarını oluşturun
-            val startOfMonth = LocalDate.of(LocalDate.now().year, selectedMonth, 1).atStartOfDay()
-            val endOfMonth = startOfMonth.plusMonths(1).minusNanos(1)
-
-            // Ay boyunca her gün için adım verilerini toplayın
-            var currentDate = startOfMonth.toLocalDate()
-
-            val data: ArrayList<Long?> = arrayListOf()
-
-            // Sağlık bağlantısından verileri toplayın
-            val response = healthConnectClient.aggregateGroupByPeriod(
-                AggregateGroupByPeriodRequest(
-                    metrics = setOf(StepsRecord.COUNT_TOTAL),
-                    timeRangeFilter = TimeRangeFilter.between(
-                        startOfMonth,
-                        endOfMonth
-                    ),
-                    Period.ofDays(1)
-                )
-            )
-
-            for (dailyData in response) {
-                data.add(dailyData.result[StepsRecord.COUNT_TOTAL])
-            }
-
-
-            val adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, data)
-
-            listView.adapter = adapter
-
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
 
     private suspend fun goNextDate() {
         if (selectedDate == LocalDate.now()) {
@@ -268,7 +194,10 @@ class PersonalDatas : AppCompatActivity() {
         } else {
             selectedDate = selectedDate.plusDays(1)
             updateUI()
-
+//            println(
+//                dailyData.selectDataType(healthConnectClient, selectedDate)
+//                    .invoke(healthConnectClient, selectedDate)
+//            )
             selectedDaysStepsCount(healthConnectClient, selectedDate)
         }
     }
@@ -276,6 +205,10 @@ class PersonalDatas : AppCompatActivity() {
     private suspend fun goBackDays() {
         selectedDate = selectedDate.minusDays(1)
         updateUI()
+//        println(
+//            dailyData.selectDataType(healthConnectClient, selectedDate)
+//                .invoke(healthConnectClient, selectedDate)
+//        )
         selectedDaysStepsCount(healthConnectClient, selectedDate)
     }
 
@@ -393,7 +326,7 @@ class PersonalDatas : AppCompatActivity() {
             )
 
             val stepsCount = response[StepsRecord.COUNT_TOTAL]
-            stepCountTextView.text = (stepsCount ?: "N/a").toString()
+            stepCountTextView.text = (stepsCount ?: "Veri girişi yok").toString()
 
         } catch (e: Exception) {
             println(e.printStackTrace())
@@ -403,15 +336,13 @@ class PersonalDatas : AppCompatActivity() {
 
     private suspend fun selectedMonthStepCount(
         healthConnectClient: HealthConnectClient,
-        selectedMonth: Month?
+        thisSelectedMonth: Month
     ) {
         try {
             // Başlangıç ve bitiş zamanlarını oluşturun
-            val startOfMonth = LocalDate.of(LocalDate.now().year, selectedMonth, 1).atStartOfDay()
+            val startOfMonth =
+                LocalDate.of(LocalDate.now().year, thisSelectedMonth, 1).atStartOfDay()
             val endOfMonth = startOfMonth.plusMonths(1).minusNanos(1)
-
-            // Ay boyunca her gün için adım verilerini toplayın
-            var currentDate = startOfMonth.toLocalDate()
 
             val data: ArrayList<Long?> = arrayListOf()
 
@@ -434,6 +365,40 @@ class PersonalDatas : AppCompatActivity() {
             val adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, data)
 
             listView.adapter = adapter
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+    }
+
+    private suspend fun weeklyStepData(
+        healthConnectClient: HealthConnectClient,
+        startTime: LocalDateTime
+    ) {
+
+        val startOfMonth = LocalDate.of(LocalDate.now().year, startTime.month, 1).atStartOfDay()
+        val endOfMonth = startOfMonth.plusMonths(1).minusNanos(1)
+
+        try {
+
+            val response = healthConnectClient.aggregateGroupByPeriod(
+                AggregateGroupByPeriodRequest(
+                    metrics = setOf(StepsRecord.COUNT_TOTAL),
+                    timeRangeFilter = TimeRangeFilter.between(startOfMonth, endOfMonth),
+                    timeRangeSlicer = Period.ofWeeks(1)
+                )
+            )
+
+            for (weeklyData in response) {
+//                println(
+//                    "Weekly step count : ${weeklyData.result[StepsRecord.COUNT_TOTAL]} || startDate : ${
+//                        formatDate(
+//                            weeklyData.startTime.toLocalDate()
+//                        )
+//                    }; endDate : ${formatDate(weeklyData.endTime.toLocalDate())}"
+//                )
+            }
 
         } catch (e: Exception) {
             e.printStackTrace()
