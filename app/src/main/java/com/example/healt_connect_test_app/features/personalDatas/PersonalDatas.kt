@@ -1,6 +1,7 @@
 package com.example.healt_connect_test_app.features.personalDatas
 
 import MonthRename
+import android.annotation.SuppressLint
 import android.os.Bundle
 import android.widget.ArrayAdapter
 import android.widget.Button
@@ -13,26 +14,19 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.PermissionController
+import androidx.health.connect.client.aggregate.AggregationResult
+import androidx.health.connect.client.aggregate.AggregationResultGroupedByPeriod
 import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.HeartRateRecord
 import androidx.health.connect.client.records.SpeedRecord
 import androidx.health.connect.client.records.StepsRecord
-import androidx.health.connect.client.request.AggregateGroupByDurationRequest
-import androidx.health.connect.client.request.AggregateGroupByPeriodRequest
-import androidx.health.connect.client.request.AggregateRequest
-import androidx.health.connect.client.time.TimeRangeFilter
 import com.example.healt_connect_test_app.R
 import com.example.healt_connect_test_app.app_constants.DataType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import java.time.Duration
-import java.time.Instant
 import java.time.LocalDate
-import java.time.LocalDateTime
 import java.time.Month
-import java.time.Period
-import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
 val dataPermission =
@@ -90,10 +84,23 @@ class PersonalDatas : AppCompatActivity() {
 
     private lateinit var listView: ListView
 
-//    private lateinit var dailyData: DataType
-//    private lateinit var weeklyData: DataType
-//    private lateinit var monthlyData: DataType
+    private lateinit var adapter: ArrayAdapter<Long?>
 
+    private lateinit var nextWeekButton: Button
+
+    private lateinit var lastWeekButton: Button
+
+    private lateinit var weeklyDateAndStepsCountTextView: TextView
+
+    private var weeklyDataControlValue = 0
+
+    private lateinit var dailyData: DataType
+    private lateinit var weeklyData: DataType
+    private lateinit var monthlyData: DataType
+    private lateinit var monthlyTotalSteps: DataType
+    private lateinit var allStepsCount: DataType
+
+    @SuppressLint("SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -112,13 +119,19 @@ class PersonalDatas : AppCompatActivity() {
         lastDateButton = findViewById(R.id.lastDate)
         nextMonthButton = findViewById(R.id.nextMonth)
         lastMonthButton = findViewById(R.id.lastMonth)
+        nextWeekButton = findViewById(R.id.nextWeek)
+        lastWeekButton = findViewById(R.id.lastWeek)
+        weeklyDateAndStepsCountTextView = findViewById(R.id.weeklyStepsDateAndCount)
 
-//        dailyData = DataType.DAILY
+        dailyData = DataType.DAILY
 
-//        weeklyData = DataType.WEEKLY
+        weeklyData = DataType.WEEKLY
 
-//        monthlyData = DataType.MONTHLY
+        monthlyData = DataType.MONTHLY
 
+        monthlyTotalSteps = DataType.MONTHLY_TOTAL
+
+        allStepsCount = DataType.ALL_STEPS
 
         totalStepCountButton = findViewById(R.id.total_count_button)
 
@@ -129,7 +142,7 @@ class PersonalDatas : AppCompatActivity() {
 
         selectedDaysTextView = findViewById(R.id.selectedDate)
 
-        selectedDaysTextView.text = formatDate(selectedDate)
+        selectedDaysTextView.text = formatDateDailyOrMonthly(selectedDate)
 
         selectedMonth = LocalDate.now().month
 
@@ -156,13 +169,21 @@ class PersonalDatas : AppCompatActivity() {
 
         nextDateButton.setOnClickListener {
             CoroutineScope(Dispatchers.Main).launch {
-                goNextDate()
+                goNextDays()
             }
         }
 
         totalStepCountButton.setOnClickListener {
             CoroutineScope(Dispatchers.Main).launch {
-                thatMonthStepCount(healthConnectClient)
+                val totalStepCount = monthlyTotalSteps.selectDataType(
+                    healthConnectClient,
+                    selectedDate,
+                    selectedMonth
+                ).invoke(healthConnectClient, selectedDate, selectedMonth)
+
+                if (totalStepCount is AggregationResult) {
+                    stepCountTextView.text = totalStepCount[StepsRecord.COUNT_TOTAL].toString()
+                }
             }
         }
 
@@ -172,44 +193,200 @@ class PersonalDatas : AppCompatActivity() {
             }
         }
 
-        CoroutineScope(Dispatchers.Main).launch {
-            checkPermissionAndRun()
-            selectedDaysStepsCount(healthConnectClient, selectedDate)
-            selectedMonthStepCount(healthConnectClient, selectedMonth)
-            weeklyStepData(healthConnectClient, LocalDateTime.now())
+        nextWeekButton.setOnClickListener {
+            println(weeklyDataControlValue)
+            CoroutineScope(Dispatchers.Main).launch {
+                val elements =
+                    weeklyData.selectDataType(healthConnectClient, selectedDate, selectedMonth)
+                        .invoke(healthConnectClient, selectedDate, selectedMonth)
+                if (elements is List<*> && AggregationResultGroupedByPeriod::class.java.isAssignableFrom(
+                        elements.firstOrNull()?.javaClass
+                    )
+                ) {
 
-//            println(
-//                dailyData.selectDataType(healthConnectClient, selectedDate)
-//                    .invoke(healthConnectClient, selectedDate)
-//            )
+                    val weeklyResult: ArrayList<AggregationResultGroupedByPeriod> = arrayListOf()
+
+                    for (element in elements) {
+                        if (element is AggregationResultGroupedByPeriod) {
+//                            println(
+//                                "Personal Data weekly Step count : ${element.result[StepsRecord.COUNT_TOTAL]} startDate : ${
+//                                    formatDateDailyOrMonthly(
+//                                        element.startTime.toLocalDate()
+//                                    )
+//                                } endDate : ${formatDateWeeklyDataEndDate(element.endTime.toLocalDate())}"
+//                            )
+
+                            weeklyResult.add(element)
+
+                        }
+                    }
+
+                    if (weeklyDataControlValue < weeklyResult.size - 1) {
+                        weeklyDataControlValue++
+
+                        weeklyDateAndStepsCountTextView.text =
+                            ("${weeklyResult[weeklyDataControlValue].result[StepsRecord.COUNT_TOTAL]}/${
+                                formatDateDailyOrMonthly(
+                                    weeklyResult[weeklyDataControlValue].startTime.toLocalDate()
+                                )
+                            }-${formatDateWeeklyDataEndDate(weeklyResult[weeklyDataControlValue].endTime.toLocalDate())}")
+                    }
+                }
+            }
 
         }
+
+        lastWeekButton.setOnClickListener {
+            CoroutineScope(Dispatchers.Main).launch {
+                val weeklyStepsData =
+                    weeklyData.selectDataType(healthConnectClient, selectedDate, selectedMonth)
+                        .invoke(healthConnectClient, selectedDate, selectedMonth)
+                if (weeklyStepsData is List<*> && AggregationResultGroupedByPeriod::class.java.isAssignableFrom(
+                        weeklyStepsData.firstOrNull()?.javaClass
+                    )
+                ) {
+
+                    val weeklyResult: ArrayList<AggregationResultGroupedByPeriod> = arrayListOf()
+
+                    for (element in weeklyStepsData) {
+                        if (element is AggregationResultGroupedByPeriod) {
+
+                            weeklyResult.add(element)
+
+                        }
+
+                    }
+
+                    if (weeklyDataControlValue > 0) {
+                        weeklyDataControlValue--
+                        weeklyDateAndStepsCountTextView.text =
+                            ("${weeklyResult[weeklyDataControlValue].result[StepsRecord.COUNT_TOTAL]}/${
+                                formatDateDailyOrMonthly(
+                                    weeklyResult[weeklyDataControlValue].startTime.toLocalDate()
+                                )
+                            }-${formatDateWeeklyDataEndDate(weeklyResult[weeklyDataControlValue].endTime.toLocalDate())}")
+
+                    }
+
+                }
+
+            }
+
+        }
+
+        CoroutineScope(Dispatchers.Main).launch {
+            println("On create corutine scopde running")
+            checkPermissionAndRun()
+
+            val elements =
+                weeklyData.selectDataType(healthConnectClient, selectedDate, selectedMonth)
+                    .invoke(healthConnectClient, selectedDate, selectedMonth)
+
+            if (elements is List<*> && AggregationResultGroupedByPeriod::class.java.isAssignableFrom(
+                    elements.firstOrNull()?.javaClass
+                )
+            ) {
+
+                val weeklyResult: ArrayList<AggregationResultGroupedByPeriod> = arrayListOf()
+
+                for (element in elements) {
+                    if (element is AggregationResultGroupedByPeriod) {
+
+                        weeklyResult.add(element)
+
+                        weeklyDateAndStepsCountTextView.text =
+                            ("${weeklyResult[weeklyDataControlValue].result[StepsRecord.COUNT_TOTAL]}/${
+                                formatDateDailyOrMonthly(
+                                    weeklyResult[weeklyDataControlValue].startTime.toLocalDate()
+                                )
+                            }-${formatDateWeeklyDataEndDate(weeklyResult[weeklyDataControlValue].endTime.toLocalDate())}")
+
+                    }
+
+                }
+
+            }
+
+            val selectedDaysStepsCount =
+                dailyData.selectDataType(healthConnectClient, selectedDate, selectedMonth)
+                    .invoke(healthConnectClient, selectedDate, selectedMonth)
+
+            if (selectedDaysStepsCount is AggregationResult) {
+                stepCountTextView.text =
+                    selectedDaysStepsCount[StepsRecord.COUNT_TOTAL].toString()
+            }
+
+
+            val selectedMonthStepsCount =
+                monthlyData.selectDataType(healthConnectClient, selectedDate, selectedMonth)
+                    .invoke(healthConnectClient, selectedDate, selectedMonth)
+
+            if (selectedMonthStepsCount is List<*> && AggregationResultGroupedByPeriod::class.java.isAssignableFrom(
+                    selectedMonthStepsCount.firstOrNull()?.javaClass
+                )
+            ) {
+                val stepCount: ArrayList<AggregationResultGroupedByPeriod?> = arrayListOf()
+
+                for (dailySteps in selectedMonthStepsCount) {
+                    if (dailySteps is AggregationResultGroupedByPeriod) {
+                        stepCount.add(dailySteps)
+                    }
+                }
+
+                adapter = ArrayAdapter<Long?>(
+                    this@PersonalDatas,
+                    android.R.layout.simple_list_item_1,
+                    stepCount.map { it?.result?.get(StepsRecord.COUNT_TOTAL) }
+                )
+
+                listView.adapter = adapter
+
+                listView.setOnItemClickListener { parent, view, position, id ->
+                    Toast.makeText(
+                        this@PersonalDatas,
+                        "Tiklanan elemanin tarihi : ${
+                            stepCount[position]?.startTime?.toLocalDate()
+                                ?.let { formatDateDailyOrMonthly(it) }
+                        }",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+
+            }
+
+        }
+
     }
 
-    // burayi incele burda istedigim verileri tam tamina alabiliyorum. for'a gerek kalmadan.
-
-    private suspend fun goNextDate() {
+    private suspend fun goNextDays() {
         if (selectedDate == LocalDate.now()) {
             return
         } else {
             selectedDate = selectedDate.plusDays(1)
+            val stepCount =
+                dailyData.selectDataType(healthConnectClient, selectedDate, selectedMonth)
+                    .invoke(healthConnectClient, selectedDate, selectedMonth)
+
+            if (stepCount is AggregationResult) {
+                stepCountTextView.text = stepCount[StepsRecord.COUNT_TOTAL].toString()
+            }
+
             updateUI()
-//            println(
-//                dailyData.selectDataType(healthConnectClient, selectedDate)
-//                    .invoke(healthConnectClient, selectedDate)
-//            )
-            selectedDaysStepsCount(healthConnectClient, selectedDate)
         }
+
     }
 
     private suspend fun goBackDays() {
         selectedDate = selectedDate.minusDays(1)
+        val stepCount = dailyData.selectDataType(healthConnectClient, selectedDate, selectedMonth)
+            .invoke(healthConnectClient, selectedDate, selectedMonth)
+
+        if (stepCount is AggregationResult) {
+            stepCountTextView.text = stepCount[StepsRecord.COUNT_TOTAL].toString()
+        }
+
         updateUI()
-//        println(
-//            dailyData.selectDataType(healthConnectClient, selectedDate)
-//                .invoke(healthConnectClient, selectedDate)
-//        )
-        selectedDaysStepsCount(healthConnectClient, selectedDate)
+
     }
 
     private suspend fun goNextMonth() {
@@ -218,7 +395,37 @@ class PersonalDatas : AppCompatActivity() {
         } else {
             selectedMonth = selectedMonth.plus(1)
             updateUI()
-            selectedMonthStepCount(healthConnectClient, selectedMonth)
+
+            val selectedMonthDailyCount =
+                monthlyData.selectDataType(healthConnectClient, selectedDate, selectedMonth)
+                    .invoke(healthConnectClient, selectedDate, selectedMonth)
+            if (selectedMonthDailyCount != null) {
+                if (selectedMonthDailyCount is List<*>) {
+                    if (AggregationResultGroupedByPeriod::class.java.isAssignableFrom(
+                            selectedMonthDailyCount.firstOrNull()?.javaClass
+                        )
+                    ) {
+                        val responseList: ArrayList<AggregationResultGroupedByPeriod> =
+                            arrayListOf()
+                        for (dailyStep in selectedMonthDailyCount) {
+                            if (dailyStep is AggregationResultGroupedByPeriod) {
+                                responseList.add(dailyStep)
+                            }
+                        }
+                        if (responseList.isNotEmpty()) {
+                            adapter.clear()
+                            adapter.addAll(responseList.map { it.result[StepsRecord.COUNT_TOTAL] })
+                        } else {
+                            adapter.clear()
+                        }
+                        adapter.notifyDataSetChanged()
+                    }
+                }
+            } else {
+                // Veri gelmediği durumda adapter'ı temizleyebilirsiniz
+                adapter.clear()
+                adapter.notifyDataSetChanged()
+            }
         }
     }
 
@@ -226,19 +433,47 @@ class PersonalDatas : AppCompatActivity() {
         if (selectedMonth != Month.JANUARY) {
 
             selectedMonth = selectedMonth.minus(1)
+            val selectedMonthDailyCount =
+                monthlyData.selectDataType(healthConnectClient, selectedDate, selectedMonth)
+                    .invoke(healthConnectClient, selectedDate, selectedMonth)
             updateUI()
-            selectedMonthStepCount(healthConnectClient, selectedMonth)
 
+            if (selectedMonthDailyCount != null) {
+                if (selectedMonthDailyCount is List<*>) {
+                    if (AggregationResultGroupedByPeriod::class.java.isAssignableFrom(
+                            selectedMonthDailyCount.firstOrNull()?.javaClass
+                        )
+                    ) {
+                        val responseList: ArrayList<AggregationResultGroupedByPeriod> =
+                            arrayListOf()
+                        for (dailyStep in selectedMonthDailyCount) {
+                            if (dailyStep is AggregationResultGroupedByPeriod) {
+                                responseList.add(dailyStep)
+                            }
+                        }
+                        if (responseList.isNotEmpty()) {
+                            adapter.clear()
+                            adapter.addAll(responseList.map { it.result[StepsRecord.COUNT_TOTAL] })
+                        } else {
+                            adapter.clear()
+                        }
+                        adapter.notifyDataSetChanged()
+                    }
+                }
+            } else {
+                // Veri gelmediği durumda adapter'ı temizleyebilirsiniz
+                adapter.clear()
+                adapter.notifyDataSetChanged()
+            }
         }
-
     }
 
     private fun updateUI() {
-        selectedDaysTextView.text = formatDate(selectedDate)
+        selectedDaysTextView.text = formatDateDailyOrMonthly(selectedDate)
         selectedMonthTextView.text = MonthRename.fromMonth(selectedMonth).toString()
     }
 
-    private fun formatDate(date: LocalDate): String {
+    private fun formatDateDailyOrMonthly(date: LocalDate): String {
 
         val formattedDate = DateTimeFormatter.ofPattern("d MMMM yyyy")
 
@@ -246,164 +481,22 @@ class PersonalDatas : AppCompatActivity() {
 
     }
 
+    private fun formatDateWeeklyDataEndDate(endDate: LocalDate): String {
+        val formatUsingDate = endDate.minusDays(1)
+        val formattedDate = DateTimeFormatter.ofPattern("d MMMM yyyy")
+
+        return formatUsingDate.format(formattedDate) ?: "'N/a"
+
+    }
+
     private suspend fun checkPermissionAndRun() {
         val granted = healthConnectClient.permissionController.getGrantedPermissions()
 
-        if (granted.containsAll(dataPermission)) {
-//            // permission al ready granted read or write data
-//            val time = LocalDateTime.now()
-//            val daysAgo = time.minusDays(10)
-//            val instant = daysAgo.toInstant(ZoneOffset.UTC)
-//            thatMountStepCount(
-//                healthConnectClient,
-//            )
-//
-//
-//            aggregateHeart(
-//                healthConnectClient,
-//                startTime = instant,
-//                endTime = Instant.now(),
-//            )
-//
-//            aggregateSpeed(
-//                healthConnectClient,
-//                startTime = instant,
-//                endTime = Instant.now(),
-//            )
-
-        } else {
+        if (!granted.containsAll(dataPermission)) {
             requestPermission.launch(dataPermission)
         }
 
     }
 
-    private suspend fun thatMonthStepCount(
-        healthConnectClient: HealthConnectClient,
-    ) {
-
-        val startOfMonth = LocalDate.now().withDayOfMonth(1).atStartOfDay()
-        val endOfDay = LocalDateTime.now()
-
-        try {
-            val response = healthConnectClient.aggregate(
-                AggregateRequest(
-                    metrics = setOf(StepsRecord.COUNT_TOTAL),
-                    timeRangeFilter = TimeRangeFilter.between(startOfMonth, endOfDay)
-                )
-            )
-            // The result may be null if no data is available in the time range
-            val stepCount = response[StepsRecord.COUNT_TOTAL]
-
-            println("step count read value : $stepCount")
-            stepCountTextView.text = (stepCount ?: "N/a").toString()
-            selectedDaysTextView.text = formatDate(LocalDate.now())
-        } catch (e: Exception) {
-            // Run error handling here
-            println("=====================  aggregateSteps error : $e ")
-
-        }
-    }
-
-    private suspend fun selectedDaysStepsCount(
-        healthConnectClient: HealthConnectClient,
-        selectedDate: LocalDate
-    ) {
-
-        val startTime = selectedDate.atStartOfDay()
-
-        val enOfDay = selectedDate.atStartOfDay().plusHours(23).plusMinutes(59).plusSeconds(59)
-
-        try {
-
-            val response = healthConnectClient.aggregate(
-                AggregateRequest(
-                    setOf(StepsRecord.COUNT_TOTAL),
-                    timeRangeFilter = TimeRangeFilter.between(
-                        startTime,
-                        enOfDay
-                    )
-                )
-            )
-
-            val stepsCount = response[StepsRecord.COUNT_TOTAL]
-            stepCountTextView.text = (stepsCount ?: "Veri girişi yok").toString()
-
-        } catch (e: Exception) {
-            println(e.printStackTrace())
-        }
-
-    }
-
-    private suspend fun selectedMonthStepCount(
-        healthConnectClient: HealthConnectClient,
-        thisSelectedMonth: Month
-    ) {
-        try {
-            // Başlangıç ve bitiş zamanlarını oluşturun
-            val startOfMonth =
-                LocalDate.of(LocalDate.now().year, thisSelectedMonth, 1).atStartOfDay()
-            val endOfMonth = startOfMonth.plusMonths(1).minusNanos(1)
-
-            val data: ArrayList<Long?> = arrayListOf()
-
-            // Sağlık bağlantısından verileri toplayın
-            val response = healthConnectClient.aggregateGroupByPeriod(
-                AggregateGroupByPeriodRequest(
-                    metrics = setOf(StepsRecord.COUNT_TOTAL),
-                    timeRangeFilter = TimeRangeFilter.between(
-                        startOfMonth,
-                        endOfMonth
-                    ),
-                    Period.ofDays(1)
-                )
-            )
-
-            for (dailyData in response) {
-                data.add(dailyData.result[StepsRecord.COUNT_TOTAL])
-            }
-
-            val adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, data)
-
-            listView.adapter = adapter
-
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-
-    }
-
-    private suspend fun weeklyStepData(
-        healthConnectClient: HealthConnectClient,
-        startTime: LocalDateTime
-    ) {
-
-        val startOfMonth = LocalDate.of(LocalDate.now().year, startTime.month, 1).atStartOfDay()
-        val endOfMonth = startOfMonth.plusMonths(1).minusNanos(1)
-
-        try {
-
-            val response = healthConnectClient.aggregateGroupByPeriod(
-                AggregateGroupByPeriodRequest(
-                    metrics = setOf(StepsRecord.COUNT_TOTAL),
-                    timeRangeFilter = TimeRangeFilter.between(startOfMonth, endOfMonth),
-                    timeRangeSlicer = Period.ofWeeks(1)
-                )
-            )
-
-            for (weeklyData in response) {
-//                println(
-//                    "Weekly step count : ${weeklyData.result[StepsRecord.COUNT_TOTAL]} || startDate : ${
-//                        formatDate(
-//                            weeklyData.startTime.toLocalDate()
-//                        )
-//                    }; endDate : ${formatDate(weeklyData.endTime.toLocalDate())}"
-//                )
-            }
-
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-
-    }
 
 }

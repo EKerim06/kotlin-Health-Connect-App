@@ -63,6 +63,34 @@
                 android:text="" />
         </LinearLayout>
 
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/lastWeek"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="last Week" />
+
+            <TextView
+                android:id="@+id/weeklyStepsDateAndCount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="" />
+
+            <Button
+                android:id="@+id/nextWeek"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="next week" />
+
+        </LinearLayout>
+
+
         <Button
             android:id="@+id/total_count_button"
             android:layout_width="match_parent"
@@ -72,19 +100,20 @@
             android:layout_marginRight="64dp"
             android:text="@string/personel_datas_total_count" />
 
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center"
-            android:paddingTop="24dp"
             android:orientation="horizontal"
+            android:paddingTop="24dp"
             tools:layout_editor_absoluteY="164dp">
 
             <Button
                 android:id="@+id/lastMonth"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Last day" />
+                android:text="Last Month" />
 
             <TextView
                 android:id="@+id/selectedMonthTextView"
@@ -97,7 +126,7 @@
                 android:id="@+id/nextMonth"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Next day" />
+                android:text="Next Month" />
 
 
         </LinearLayout>
