@@ -1,8 +1,6 @@
 package com.example.healt_connect_test_app.features.homePage
 
-import android.content.DialogInterface
 import android.content.Intent
-import android.health.connect.HealthConnectManager
 import android.net.Uri
 import android.os.Bundle
 import android.widget.Button
